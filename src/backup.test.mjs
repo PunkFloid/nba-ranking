@@ -1,0 +1,17 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {validateBackup,chartData,pragueWeek} from './backup.js';
+const account='a7ed5912-355a-43e2-85d2-26b226081497',now=Date.UTC(2026,10,18),ids=Array.from({length:30},(_,i)=>'T'+i);
+const blank=()=>({application:'nba-ranking',schema_version:1,account_id:account,exported_at:new Date(now).toISOString(),answers:[],weekly_snapshots:[]});
+const answer=()=>({id:'8f66dc5d-e68c-4bd8-9b98-a867f4202655',user_id:account,winner:'T0',loser:'T1',answered_at:new Date(now).toISOString(),received_at:new Date(now).toISOString()});
+const snap=()=>({user_id:account,week_start:'2026-11-09',captured_at:new Date(now).toISOString(),model_version:'bt-decay-56d-v1',new_answers:0,rankings:ids.map((team,i)=>({team,rank:i+1,score:0}))});
+test('Backup round trip',()=>{const b=blank();assert.deepEqual(validateBackup(JSON.parse(JSON.stringify(b)),account,ids,now),b);});
+test('Wrong account or format rejected',()=>{for(const patch of [{account_id:'other'},{schema_version:99},{application:'other'}])assert.throws(()=>validateBackup({...blank(),...patch},account,ids,now));});
+test('Answers validated and duplicate IDs rejected',()=>{const b=blank();b.answers=[answer()];validateBackup(b,account,ids,now);for(const patch of [{id:'bad'},{winner:'T1'},{loser:'unknown'},{answered_at:'tomorrow'},{user_id:'other'}])assert.throws(()=>validateBackup({...b,answers:[{...answer(),...patch}]},account,ids,now));assert.throws(()=>validateBackup({...b,answers:[answer(),answer()]},account,ids,now));});
+test('Full and unranked snapshots accepted',()=>{const b=blank();b.weekly_snapshots=[snap()];validateBackup(b,account,ids,now);b.weekly_snapshots[0].rankings.forEach(x=>x.rank=null);validateBackup(b,account,ids,now);});
+test('Malformed snapshots rejected',()=>{for(const change of [s=>s.rankings[1].rank=1,s=>s.rankings[1].team='T0',s=>s.rankings[1].rank=null,s=>s.rankings.pop(),s=>s.rankings[0].score=Infinity]){const b=blank(),s=snap();change(s);b.weekly_snapshots=[s];assert.throws(()=>validateBackup(b,account,ids,now));}});
+test('Invalid, incomplete and non-Monday weeks rejected',()=>{for(const week_start of ['2026-11-10','2026-02-30','2026-11-16']){const b=blank();b.weekly_snapshots=[{...snap(),week_start}];assert.throws(()=>validateBackup(b,account,ids,now));}});
+test('Prague week boundary handles UTC Sunday and summer time',()=>{assert.equal(pragueWeek(Date.parse('2026-11-15T23:30:00Z')),'2026-11-16');assert.equal(pragueWeek(Date.parse('2026-03-29T22:30:00Z')),'2026-03-30');});
+test('Chart uses real time spacing and rank direction',()=>{const a=snap(),b={...snap(),week_start:'2026-11-16'};const d=chartData([b,a],['T0','T29']);assert.equal(d.weeks[0].week_start,a.week_start);assert.equal(d.series[0].points[0].y,20);assert.equal(d.series[1].points[0].y,268);assert.equal(d.series[0].points[1].breakBefore,false);assert.equal(d.ticks.length,2);});
+test('Missing rank is not turned into a chart position',()=>{const s=snap();s.rankings[0].rank=null;assert.equal(chartData([s],['T0']).series[0].points[0].y,null);});
+test('Missing week breaks the line and empty history is supported',()=>{const d=chartData([snap(),{...snap(),week_start:'2026-11-23'}],['T0']);assert.equal(d.series[0].points[1].breakBefore,true);assert.equal(chartData([],['T0']).ticks.length,0);});
