@@ -1,1 +1,39 @@
-<!doctype html><html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#111827"><title>NBA Ranking</title><style>:root{font-family:system-ui;color:#f3f4ff;background:#111827;color-scheme:dark}*{box-sizing:border-box}body{margin:0}main{max-width:600px;margin:auto;padding:24px 18px 110px}h1{margin-bottom:4px}p,small{color:#b3bfd4;line-height:1.5}button,input,select{font:inherit;border-radius:14px;border:1px solid #40506b;padding:15px;background:#23334f;color:white;min-height:48px}button{cursor:pointer}button:disabled{opacity:.5}input,select{width:100%;margin-bottom:12px}form{margin-top:30px}form button{width:100%;background:#395fea}.team{width:100%;min-height:145px;margin:8px 0;text-align:left;font-size:24px;font-weight:700;background:linear-gradient(120deg,#304972,#1b2941)}nav{position:fixed;bottom:0;left:0;right:0;display:flex;gap:6px;padding:12px 10px max(12px,env(safe-area-inset-bottom));background:#111827f5;border-top:1px solid #40506b}nav button{flex:1;padding:12px 3px;font-size:14px}nav .active{background:#395fea}.row{display:flex;gap:15px;padding:16px 0;border-bottom:1px solid #34415b}.rank{min-width:32px;color:#9ab4ff}.actions{display:flex;gap:10px;margin-top:18px}.actions button{flex:1}#err{color:#ffb8b8;white-space:pre-wrap}#status{font-size:13px;min-height:24px}#logout{float:right;padding:9px;font-size:12px}svg{width:100%;background:#1b2941;border-radius:14px}table{width:100%;font-size:14px}td{padding:12px 3px;border-bottom:1px solid #34415b}[hidden]{display:none!important}</style></head><body><main><button id="logout" hidden>Odhlásit</button><h1>NBA Ranking</h1><small>Tvoje týmy. Tvoje pořadí.</small><p id="status" role="status" aria-live="polite"></p><p id="err" role="alert"></p><form id="login"><h2>Přihlášení</h2><input id="email" type="email" autocomplete="username" aria-label="E-mail" placeholder="E-mail" required><input id="password" type="password" autocomplete="current-password" aria-label="Heslo" placeholder="Heslo" required><button id="signin">Přihlásit</button></form><section id="content" hidden></section></main><nav id="nav" hidden><button data-tab="vote">Porovnávání</button><button data-tab="ranking">Žebříček</button><button data-tab="history">Historie</button></nav><script type="module" src="/src/main.js"></script></body></html>
+<!doctype html>
+<html lang="cs">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+ <meta name="theme-color" content="#0b101b">
+ <title>NBA Ranking</title>
+ <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+ <main>
+  <header class="brand">
+   <img src="%BASE_URL%app-icon-v1.png" alt="" width="46" height="46">
+   <div class="brand-copy"><p class="eyebrow">OSOBNÍ ŽEBŘÍČEK</p><h1>NBA Ranking</h1></div>
+   <button id="logout" type="button" aria-label="Odhlásit" title="Odhlásit" hidden>Odhlásit</button>
+  </header>
+  <p id="status" role="status" aria-live="polite"></p>
+  <p id="err" role="alert"></p>
+  <p id="feedback" class="sr-only" role="status" aria-live="polite"></p>
+  <form id="login">
+   <p class="eyebrow">TVÁ LIGA. TVOJE VOLBA.</p>
+   <h2>Najdi své<br>favority.</h2>
+   <p>Vybírej mezi dvojicemi týmů a sleduj, jak vzniká tvůj osobní žebříček.</p>
+   <label for="email">E-mail</label>
+   <input id="email" type="email" autocomplete="username" placeholder="tvuj@email.cz" required>
+   <label for="password">Heslo</label>
+   <input id="password" type="password" autocomplete="current-password" placeholder="Tvoje heslo" required>
+   <button id="signin" type="submit">Přihlásit se</button>
+  </form>
+  <section id="content" aria-label="Obsah aplikace" hidden></section>
+ </main>
+ <nav id="nav" aria-label="Hlavní navigace" hidden>
+  <button type="button" data-tab="vote">Porovnávání</button>
+  <button type="button" data-tab="ranking">Žebříček</button>
+  <button type="button" data-tab="history">Historie</button>
+ </nav>
+ <script type="module" src="/src/main.js"></script>
+</body>
+</html>
