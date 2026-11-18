@@ -2,6 +2,7 @@ import {rankCard,stats,weeklyMovement} from './presentation.js';
 import {manualPair,expandableStats} from './interactions.js';
 import {uncertaintyRelations} from './uncertainty.js';
 import {teamRivals,renderRivals} from './rivals.js';
+import {drawTopRivalries} from './top-rivalries.js';
 const DAY=86400000;
 const add=(parent,tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;parent.append(e);return e;};
 function validAnswers(rows,teams){const codes=new Set(teams.map(t=>t[0])),unique=new Map();for(const r of rows)if(r&&typeof r.id==='string'&&r.id)unique.set(r.id,r);return [...unique.values()].filter(r=>codes.has(r.winner)&&codes.has(r.loser)&&r.winner!==r.loser&&Number.isFinite(Date.parse(r.answered_at)));}
@@ -30,6 +31,7 @@ export function attachTeamDetail(wrap,{team,teams,summary,neighbors=[],onCompare
 }
 export function drawTeamRanking(c,{teams,m,rows,history,expanded,onToggle,onCompare,disabled=false}){
  add(c,'h2','Žebříček');stats(c,[[m.total,'odpovědí'],[`${m.seen}/${teams.length}`,'porovnávaných týmů'],[m.pending.length,'nezařazených']]);const neighbors=unclearNeighbors(rows,teams,m);
+ drawTopRivalries(c,{rows,teams,onCompare,disabled});
  const comparable=m.order.length===30&&m.order.every((i,k)=>weeklyMovement(history,30,teams[i][0],k+1)!==null);
  function append(i,rank,delta=null){const team=teams[i],related=neighbors.get(team[0]),note=related.length?'Nejisté vůči '+related.join(' / '):'',summary=teamSummary(rows,teams,team[0]),card=rankCard(team,rank,note,delta);if(!note)card.querySelector('small')?.remove();const wrap=expandableStats(card,team,summary,expanded===team[0],c,open=>onToggle(open?team[0]:null));c.append(attachTeamDetail(wrap,{team,teams,summary,neighbors:related,onCompare,disabled}));}
  if(m.order.length){add(c,'h2',`Pořadí mezi ${m.order.length} týmy`);if(comparable)add(c,'p','Proti týdnu od '+new Date(history.at(-1).week_start+'T12:00:00').toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric',year:'numeric'}));m.order.forEach((i,k)=>append(i,`${k+1}.`,comparable?weeklyMovement(history,30,teams[i][0],k+1):null));}else add(c,'p','Zatím bez pořadí.');
