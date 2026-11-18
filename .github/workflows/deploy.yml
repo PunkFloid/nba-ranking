@@ -28,6 +28,8 @@ jobs:
         run: npm ci
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+      - name: Test ranking and pair selection
+        run: node --test src/ranking.test.mjs
       - name: Build
         run: npm run build
       - name: Upload Pages artifact

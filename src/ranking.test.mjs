@@ -1,0 +1,24 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {fitRanking,pickPair} from './ranking.js';
+const teams=Array.from({length:30},(_,i)=>['T'+i,'Team '+String(i).padStart(2,'0')]),now=Date.UTC(2026,10,18),DAY=86400000;
+let seq=0;
+const row=(a,b,time=now)=>({id:String(seq++),winner:teams[a][0],loser:teams[b][0],answered_at:new Date(time).toISOString()});
+const rng=seed=>()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};
+const complete=(count=30)=>{const r=[];for(let a=0;a<count;a++)for(let b=a+1;b<count;b++)r.push(row(a,b));return r;};
+test('Empty data: no ranks and alphabetical pending teams',()=>{const m=fitRanking([],teams,now);assert.equal(m.order.length,0);assert.equal(m.pending.length,30);assert.equal(m.seen,0);});
+test('Four connected teams rank without waiting for the other 26',()=>{const m=fitRanking([...complete(4),row(0,1),row(2,3)],teams,now);assert.equal(m.order.length,4);assert.equal(m.pending.length,26);});
+test('A hundred repeated wins against one opponent do not qualify either team',()=>{const m=fitRanking(Array.from({length:100},()=>row(0,1)),teams,now);assert.equal(m.order.length,0);});
+test('Deterministic complete preference order is recovered',()=>{const m=fitRanking(complete(),teams,now);assert.deepEqual(m.order,Array.from({length:30},(_,i)=>i));});
+test('Symmetric preferences produce tied scores and uncertain neighbors',()=>{const r=complete();const both=[...r,...r.map(x=>({...x,id:String(seq++),winner:x.loser,loser:x.winner}))];const m=fitRanking(both,teams,now);assert.ok(m.s.every(x=>Math.abs(x)<1e-9));assert.equal(m.close.size,30);});
+test('Recent change can overcome old favorite',()=>{const old=Array.from({length:40},()=>row(0,1,now-168*DAY)),fresh=Array.from({length:40},()=>row(1,0));const m=fitRanking([...old,...fresh],teams,now);assert.ok(m.s[1]>m.s[0]);});
+test('One opposite answer does not overturn forty consistent answers',()=>{const m=fitRanking([...Array.from({length:40},()=>row(0,1)),row(1,0)],teams,now);assert.ok(m.s[0]>m.s[1]);});
+test('Duplicate IDs count once and invalid answers are ignored',()=>{const r=row(0,1);const m=fitRanking([r,r,{...r,id:'bad',answered_at:'invalid'},{...r,id:'bad2',loser:r.winner}],teams,now);assert.equal(m.total,1);});
+test('Old answers have half weight after 56 days',()=>{const m=fitRanking([row(0,1,now-56*DAY)],teams,now);assert.ok(Math.abs(m.n[0]-.5)<1e-9);});
+test('Covariance is finite and symmetric',()=>{const m=fitRanking(complete(),teams,now);for(let i=0;i<30;i++)for(let j=0;j<30;j++){assert.ok(Number.isFinite(m.variance(i,j)));assert.ok(Math.abs(m.variance(i,j)-m.variance(j,i))<1e-9);}});
+test('Selection never repeats the last 12 pairs and covers all teams',()=>{const random=rng(42),m=fitRanking([],teams,now),recent=[],seen=new Set();let previous=[];for(let i=0;i<200;i++){const next=pickPair(m,{recent,previous,rng:random});assert.ok(!recent.slice(-12).includes(next.key));assert.notEqual(next.pair[0],next.pair[1]);next.pair.forEach(x=>seen.add(x));recent.push(next.key);previous=next.pair;}assert.equal(seen.size,30);});
+test('Review mode selects a neglected team',()=>{const r=[];for(let a=0;a<29;a++)for(let b=a+1;b<29;b++)r.push(row(a,b));const m=fitRanking(r,teams,now),values=[.7];const next=pickPair(m,{rng:()=>values.length?values.shift():.5});assert.ok(next.pair.includes(29));});
+test('Seeded adaptive run ranks most teams and learns their order',()=>{const random=rng(17),r=[],recent=[];let previous=[];for(let k=0;k<240;k++){const m=fitRanking(r,teams,now),next=pickPair(m,{recent,previous,rng:random});const [a,b]=next.pair;r.push(row(Math.min(a,b),Math.max(a,b)));recent.push(next.key);previous=next.pair;}const m=fitRanking(r,teams,now);let correct=0,total=0;for(let a=0;a<30;a++)for(let b=a+1;b<30;b++){total++;if(m.s[a]>m.s[b])correct++;}assert.ok(m.order.length>=25,`Only ${m.order.length} ranked`);assert.ok(correct/total>.85,`Accuracy ${correct/total}`);console.log(JSON.stringify({answers:r.length,ranked:m.order.length,pairwiseAgreement:correct/total}));});
+
+test('Equally sized disconnected groups are not given a joint ranking',()=>{const r=[...complete(4),...complete(4).map(x=>({...x,id:String(seq++),winner:'T'+(Number(x.winner.slice(1))+4),loser:'T'+(Number(x.loser.slice(1))+4)}))];const m=fitRanking(r,teams,now);assert.equal(m.order.length,0);});
+test('Noisy adaptive answers still recover a useful order',()=>{const random=rng(91),r=[],recent=[];let previous=[];for(let k=0;k<350;k++){const m=fitRanking(r,teams,now),next=pickPair(m,{recent,previous,rng:random});let [a,b]=next.pair.sort((a,b)=>a-b);if(random()<.15)[a,b]=[b,a];r.push(row(a,b));recent.push(next.key);previous=next.pair;}const m=fitRanking(r,teams,now);let good=0;for(let a=0;a<30;a++)for(let b=a+1;b<30;b++)if(m.s[a]>m.s[b])good++;assert.ok(good/435>.8);});
