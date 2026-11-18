@@ -11,20 +11,18 @@
  <main>
   <header class="brand">
    <img src="%BASE_URL%app-icon-v1.png" alt="" width="46" height="46">
-   <div class="brand-copy"><p class="eyebrow">OSOBNÍ ŽEBŘÍČEK</p><h1>NBA Ranking</h1></div>
+   <div class="brand-copy"><h1>NBA Ranking</h1></div>
    <button id="logout" type="button" aria-label="Odhlásit" title="Odhlásit" hidden>Odhlásit</button>
   </header>
   <p id="status" role="status" aria-live="polite"></p>
   <p id="err" role="alert"></p>
   <p id="feedback" class="sr-only" role="status" aria-live="polite"></p>
   <form id="login">
-   <p class="eyebrow">TVÁ LIGA. TVOJE VOLBA.</p>
-   <h2>Najdi své<br>favority.</h2>
-   <p>Vybírej mezi dvojicemi týmů a sleduj, jak vzniká tvůj osobní žebříček.</p>
+   <h2>Přihlášení</h2>
    <label for="email">E-mail</label>
-   <input id="email" type="email" autocomplete="username" placeholder="tvuj@email.cz" required>
+   <input id="email" type="email" autocomplete="username" required>
    <label for="password">Heslo</label>
-   <input id="password" type="password" autocomplete="current-password" placeholder="Tvoje heslo" required>
+   <input id="password" type="password" autocomplete="current-password" required>
    <button id="signin" type="submit">Přihlásit se</button>
   </form>
   <section id="content" aria-label="Obsah aplikace" hidden></section>
