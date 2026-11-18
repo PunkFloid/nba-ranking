@@ -1,0 +1,17 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {uncertainNeighbors} from './uncertainty.js';
+import {fitRanking,pickPair} from './ranking.js';
+const check=(pairs,order=[0,1],scores=[.2,0],size=2)=>uncertainNeighbors(order,scores,()=>1,pairs,size);
+test('Two consistent direct wins do not become uncertain only because scores are close',()=>assert.equal(check([[0,1,1],[0,1,1]]).size,0));
+test('A recent direct answer resolves that comparison for display',()=>assert.equal(check([[0,1,1]]).size,0));
+test('Consistent indirect evidence resolves a comparison',()=>assert.equal(check([[0,2,1],[2,1,1]],[0,1],[.2,0,.1],3).size,0));
+test('Unresolved close neighbors remain marked',()=>assert.equal(check([]).size,2));
+test('Balanced contradictory direct votes remain marked despite an indirect path',()=>assert.equal(check([[0,1,1],[1,0,1],[0,2,1],[2,1,1]],[0,1],[.2,0,.1],3).size,2));
+test('Cycles cannot certify a comparison',()=>assert.equal(check([[0,1,1],[1,2,1],[2,0,1]],[0,1],[.2,0,.1],3).size,2));
+test('One opposing vote does not erase a strong majority',()=>assert.equal(check([[0,1,4],[1,0,1]]).size,0));
+test('Evidence against the estimated order is flagged even when scores differ',()=>assert.equal(check([[1,0,2]],[0,1],[5,0]).size,2));
+test('Stale low-weight evidence does not suppress the label',()=>assert.equal(check([[0,1,.2],[0,1,.2]]).size,2));
+test('Recent reversed preferences can replace stale preferences',()=>assert.equal(check([[0,1,.1],[0,1,.1],[1,0,1],[1,0,1]],[1,0],[0,.2]).size,0));
+test('Separated model estimates are not marked without overlap',()=>assert.equal(check([],[0,1],[5,0]).size,0));
+test('Unbeaten leader with nine wins and eight opponents is not blanket-marked',()=>{const pairs=Array.from({length:8},(_,i)=>[0,i+1,1]);pairs.push([0,1,1]);for(let i=1;i<8;i++)pairs.push([i,i+1,1]);const result=check(pairs,Array.from({length:9},(_,i)=>i),Array.from({length:9},(_,i)=>(9-i)/10),9);assert.equal(result.has(0),false);});
+test('Ranking model and question selection still operate with the new display rule',()=>{const teams=Array.from({length:30},(_,i)=>['T'+i,'Team '+i]),now=Date.UTC(2026,10,18),rows=[];for(let a=0;a<30;a++)for(let b=a+1;b<30;b++)rows.push({id:a+':'+b,winner:'T'+a,loser:'T'+b,answered_at:new Date(now).toISOString()});const m=fitRanking(rows,teams,now);assert.deepEqual(m.order,Array.from({length:30},(_,i)=>i));assert.equal(m.close.size,0);assert.equal(pickPair(m,{rng:()=>.5}).pair.length,2);});

@@ -1,3 +1,4 @@
+import {uncertainNeighbors} from './uncertainty.js';
 export const MODEL_VERSION='bt-decay-56d-v1';
 const DAY=86400000,N=30;
 const key=(a,b)=>a<b?`${a}:${b}`:`${b}:${a}`;
@@ -27,7 +28,7 @@ export function fitRanking(rows,teams,now=Date.now()){
  const aug=h.map((r,i)=>[...r,...Array.from({length:N},(_,j)=>i===j?1:0)]);
  for(let i=0;i<N;i++){const d=aug[i][i];for(let j=0;j<2*N;j++)aug[i][j]/=d;for(let k=0;k<N;k++)if(k!==i){const f=aug[k][i];for(let j=0;j<2*N;j++)aug[k][j]-=f*aug[i][j];}}
  const covariance=aug.map(r=>r.slice(N)),variance=(a,b)=>Math.max(0,covariance[a][a]+covariance[b][b]-2*covariance[a][b]);
- const close=new Set();for(let k=1;k<order.length;k++){const a=order[k-1],b=order[k];if(Math.abs(s[a]-s[b])<Math.sqrt(variance(a,b))){close.add(a);close.add(b);}}
+ const close=uncertainNeighbors(order,s,variance,pairs,N);
  return {s,n,last,op,order,pending,eligible,close,variance,seen:op.filter(o=>o.size).length,total:pairs.length,now};
 }
 export function pickPair(m,{recent=[],previous=[],rng=Math.random}={}){
